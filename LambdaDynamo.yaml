@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+
+  MyVPC:
+    Description : Choose a VPC
+    Type : 'AWS::EC2::VPC::Id'
+   
+  publicSubnet1:
+
+    Description : Public Subent 1
+    Type : 'AWS::EC2::Subnet::Id'
+
+  privateSubnet1:
+
+    Description : Private Subent 1
+    Type : 'AWS::EC2::Subnet::Id'
+
+  privateSubnet2:
+
+    Description : Private Subent 2
+    Type : 'AWS::EC2::Subnet::Id'
+
+Resources:
+
+  MyDynamoDBTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: NEWTABLE
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: N
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: 'user_id'
+          KeySchema:
+            - AttributeName: 'user_id'
+              KeyType: 'HASH'
+          Projection:
+            ProjectionType: 'ALL'
+          ProvisionedThroughput: 
+            ReadCapacityUnits: 2
+            WriteCapacityUnits: 2
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  CreateTaskFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: <Lambda function code>
+      Handler: lambda_function.lambda_handler
+      Role: arn:aws:iam::658186644834:role/books-api-role
+      Code:
+        S3Bucket: apilambdadynamo
+        S3Key: Task-App-Create-Task-75401696-fe33-46e8-ac79-179c989c85cd.zip
+      Runtime: python3.8
+
+      VpcConfig:
+        SubnetIds:
+          - !Ref privateSubnet1
+          - !Ref privateSubnet2
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+
+  GetTaskFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: <Lambda function code>
+      Handler: lambda_function.lambda_handler
+      Role: arn:aws:iam::658186644834:role/books-api-role
+      Code:
+        S3Bucket: apilambdadynamo
+        S3Key: Task-App-Get-Tasks-2c0f4735-5a7d-4b4b-be98-8d16b03d52b6.zip
+      Runtime: python3.8
+
+      VpcConfig:
+        SubnetIds:
+          - !Ref privateSubnet1
+          - !Ref privateSubnet2
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+
+  
+  DeleteTaskFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: <Lambda function code>
+      Handler: lambda_function.lambda_handler
+      Role: arn:aws:iam::658186644834:role/books-api-role
+      Code:
+        S3Bucket: apilambdadynamo
+        S3Key: Task-App-Delete-Task-f4e189ba-a637-49dc-a0e3-2806a70edf3b.zip
+      Runtime: python3.8
+
+      VpcConfig:
+        SubnetIds:
+          - !Ref privateSubnet1
+          - !Ref privateSubnet2
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+
+
+  LambdaSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Security group for Lambda function
+      VpcId: !Ref MyVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          # CidrIpv6: ::/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          # CidrIpv6: ::/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          # CidrIp: 0.0.0.0/0
+          # CidrIpv6: ::/0
+          DestinationPrefixListId: 'pl-02cd2c6b'
+  
